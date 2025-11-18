@@ -8,3 +8,13 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Dataset
+dataset
+
+# Temporary upload files
+.tmp*
+*.tmp
+*.temp
+
+checkpoints

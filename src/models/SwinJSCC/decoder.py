@@ -1,4 +1,4 @@
-from modules import *
+from .modules import *
 import torch
 from timm.models.layers import trunc_normal_
 import datetime
@@ -98,9 +98,12 @@ class SwinJSCC_Decoder(nn.Module):
                                upsample=PatchReverseMerging)
             self.layers.append(layer)
             print("Decoder ", layer.extra_repr())
+
+        self.hidden_dim = int(self.embed_dims[0] * 1.5)
+        self.layer_num = layer_num = 7
         if C != None:
             self.head_list = nn.Linear(C, embed_dims[0])
-        if model != 'SwinJSCC_w/_RA' and model != 'SwinJSCC_w/o_SAandRA':
+        if model != 'SwinJSCC_w/_RA':
             self._build_snr_modulators(model)
 
         self.apply(self._init_weights)
@@ -117,7 +120,7 @@ class SwinJSCC_Decoder(nn.Module):
         self.sigmoid = nn.Sigmoid()
         
     def _apply_modulation(self, x, snr):
-        B, L, _ = x.shape
+        B, L, C = x.shape
         device = x.device
         snr_cuda = torch.tensor(snr, dtype=torch.float).to(device)
         snr_batch = snr_cuda.unsqueeze(0).expand(B, -1)
@@ -132,16 +135,17 @@ class SwinJSCC_Decoder(nn.Module):
         return x * mod_val
     
     def forward(self, x, snr=None, model=None):
-        x = self.head_list(x)
 
         if model != 'SwinJSCC_w/_RA' and model != 'SwinJSCC_w/o_SAandRA':
             x = self._apply_modulation(x, snr)
+        else:
+            x = self.head_list(x)
 
         for layer in self.layers:
             x = layer(x)
 
-        B, L, C = x.shape
-        x = x.reshape(B, self.H, self.W, C).permute(0, 3, 1, 2)
+        B, L, N = x.shape
+        x = x.reshape(B, self.H, self.W, N).permute(0, 3, 1, 2)
         return x
 
     def _init_weights(self, m):
