@@ -67,7 +67,7 @@ class Channel(nn.Module):
         snr_linear = 10 ** (snr_db / 10) 
         sigma = np.sqrt(1.0 / (2 * snr_linear))
 
-        if self.channel_type == 'AWGN':
+        if self.channel_type == 'awgn':
             return self.AWGN(channel_in, sigma)
         
         elif self.channel_type == 'Rayleigh':
@@ -92,7 +92,7 @@ class Channel(nn.Module):
         channel_output = torch.cat([torch.real(channel_output), torch.imag(channel_output)])
         channel_output = channel_output.reshape(input_shape)
 
-        if self.channel_type == 'AWGN':
+        if self.channel_type == 'awgn':
             noise = (channel_output - channel_tx).detach()
             noise.reqruire_grad = False
             channel_tx = channel_tx + noise

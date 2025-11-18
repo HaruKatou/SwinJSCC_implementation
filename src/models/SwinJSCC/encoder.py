@@ -1,4 +1,4 @@
-from modules import *
+from .modules import *
 import torch
 
 class BasicLayer(nn.Module):
@@ -153,10 +153,10 @@ class SwinJSCC_Encoder(nn.Module):
         elif model == 'SwinJSCC_w/_SA':
             x, _ = self._apply_modulation(x, self.sa_sm_list, self.sa_bm_list, snr, self.H, self.W, self.sa_sigmoid)
             x = self.head_list(x)
-            return x
+            return x, None
         
         elif model == 'SwinJSCC_w/_RA':
-            x, mod_val = self._apply_modulation(x, self.ra_sm_list, self.ra_bm_list, rate, self.H, self.W)
+            x, mod_val = self._apply_modulation(x, self.ra_sm_list, self.ra_bm_list, rate, self.H, self.W, self.ra_sigmoid)
 
         elif model == 'SwinJSCC_w/_SAandRA':
             x, _ = self._apply_modulation(x, self.sa_sm_list, self.sa_bm_list, snr, self.H, self.W, self.sa_sigmoid)
@@ -166,13 +166,15 @@ class SwinJSCC_Encoder(nn.Module):
         mask = torch.sum(mod_val, dim=1)
         sorted_mask, indices = mask.sort(dim=1, descending=True)
         c_indices = indices[:, :rate]
+        add = torch.Tensor(range(0, B * x.size()[2], x.size()[2])).unsqueeze(1).repeat(1, rate)
+        c_indices = c_indices + add.int().cuda()
         mask = torch.zeros(mask.size()).reshape(-1).cuda()
         mask[c_indices.reshape(-1)] = 1
         mask = mask.reshape(B, x.size()[2])
         mask = mask.unsqueeze(1).expand(-1, H * W // (self.num_layers ** 4), -1)
         x = x * mask
 
-        return (x, mask) if mask is not None else self.head_list(x)
+        return (x, mask)
     
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -219,39 +221,3 @@ def build_model(config):
         num_params += param.numel()
     print("TOTAL Params {}M".format(num_params / 10 ** 6))
     print("TOTAL FLOPs {}G".format(model.flops() / 10 ** 9))
-
-class Config:
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    encoder_kwargs = {
-        "model": "SwinJSCC_w/_SAandRA",   # Change to test other models
-        "img_size": (256, 256),
-        "patch_size": 2,
-        "in_chans": 3,
-        "embed_dims": [128, 192, 256, 320],
-        "depths": [2, 2, 2, 2],
-        "num_heads": [4, 6, 8, 10],
-        "C": 3
-    }
-
-config = Config()
-
-# Create input tensor
-input_image = torch.ones([1, 3, 256, 256]).to(config.device)
-
-# Build and test the model
-model = create_encoder(**config.encoder_kwargs)
-model.to(config.device)
-
-# Forward pass
-output = model(input_image, snr=torch.tensor([10.0]), rate=16, model=config.encoder_kwargs["model"])
-print("Output shape:", output if isinstance(output, torch.Tensor) else output[0].shape)
-
-# Count parameters
-num_params = sum(p.numel() for p in model.parameters())
-print("TOTAL Params: {:.2f}M".format(num_params / 1e6))
-
-# FLOPs (if your flops method works)
-print("TOTAL FLOPs: {:.2f}G".format(model.flops() / 1e9))
-
-
-

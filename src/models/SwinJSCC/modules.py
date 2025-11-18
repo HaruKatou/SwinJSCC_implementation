@@ -292,13 +292,13 @@ class PatchReverseMerging(nn.Module):
         Reshape and rearrange patches to original resolution
     """
     
-    def __init__(self, input_resolution, dim, out_dim=None):
+    def __init__(self, input_resolution, dim, out_dim, norm_layer=nn.LayerNorm):
         super().__init__()
         self.input_resolution = input_resolution
-        self.out_dim = dim
         self.dim = dim
-        self.increment = nn.Linear(dim, 4 * out_dim, bias=False)
-        self.norm_layer = nn.LayerNorm(dim)
+        self.out_dim = out_dim
+        self.increment = nn.Linear(dim, out_dim * 4, bias=False)
+        self.norm = norm_layer(dim)
 
     def forward(self, x):
         """
@@ -309,7 +309,7 @@ class PatchReverseMerging(nn.Module):
         assert L == H * W, "input feature has wrong size"
         assert H % 2 == 0 and W % 2 == 0, f"x size ({H}*{W}) are not even."
 
-        x = self.norm_layer(x)
+        x = self.norm(x)
         x = self.increment(x)
         x = x.view(B, H, W, -1).permute(0, 3, 1, 2)
         x = nn.PixelShuffle(2)(x)
