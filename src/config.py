@@ -90,6 +90,9 @@ class Config:
                 base_path + '/div2k/DIV2K_valid_HR'
             ]
 
+            if args.model == 'DJSCC':
+                channel_number = int(args.C)
+
             if args.model == 'SwinJSCC_w/o_SAandRA' or args.model == 'SwinJSCC_w/_SA':
                 channel_number = int(args.C)
             else:

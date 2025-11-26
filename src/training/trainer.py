@@ -122,6 +122,15 @@ class Trainer:
                         meters["psnr"].update(psnr)
                         meters["msssim"].update(msssim)
 
+                    log = ' | '.join([
+                        f'Time {meters["time"].val:.3f}',
+                        f'CBR {meters["cbr"].val:.4f} ({meters["cbr"].avg:.4f})',
+                        f'SNR {meters["snr"].val:.1f}',
+                        f'PSNR {meters["psnr"].val:.3f} ({meters["psnr"].avg:.3f})',
+                        f'MSSSIM {meters["msssim"].val:.3f} ({meters["msssim"].avg:.3f})',
+                    ])
+                    self.logger.info(log)
+
                 # store averages
                 results["snr"][i, j] = meters["snr"].avg
                 results["cbr"][i, j] = meters["cbr"].avg
@@ -131,17 +140,21 @@ class Trainer:
                 self.logger.info(
                     f"Test SNR={snr} Rate={rate} → "
                     f"CBR {meters['cbr'].avg:.4f} "
-                    f"PSNR {meters['psnr'].avg:.2f} "
-                    f"MS-SSIM {meters['msssim'].avg:.4f}"
+                    f"PSNR {meters['psnr'].avg:.3f} "
+                    f"MS-SSIM {meters['msssim'].avg:.3f}"
                 )
 
-        self._print_tables(results)
+                for t in meters.values():
+                    t.reset()
 
-    def _print_tables(self, results: dict) -> None:
-        for k, arr in results.items():
-            self.logger.info(f"{k.upper()}:")
-            for row in arr.tolist():
-                self.logger.info("  " + "  ".join(f"{v: .4f}" if k != "snr" else f"{int(v):3d}" for v in row))
+        self._print_results(results)
+
+    def _print_results(self, results: dict) -> None:
+        print("SNR: {}".format(results["snr"].tolist()))
+        print("CBR: {}".format(results["cbr"].tolist()))
+        print("PSNR: {}".format(results["psnr"].tolist()))
+        print("MS-SSIM: {}".format(results["msssim"].tolist()))
+        print("Finish Test!")
 
     def save_checkpoint(self, epoch: int) -> None:
         path = self.cfg.models / f"{self.cfg.workdir.name}_EP{epoch}.pth"
