@@ -56,8 +56,12 @@ class Channel(nn.Module):
         return h * x + noise
     
     def complex_normalize(self, x, target_power):
+        if not torch.is_tensor(target_power):
+            target_power = torch.tensor(target_power, device=self.device)
+
         power = torch.mean(x ** 2) * 2
-        scale = np.sqrt(power) / torch.sqrt(target_power)
+        scale = torch.sqrt(power) / torch.sqrt(target_power)
+
         return x * scale, power
     
     def complex_forward(self, channel_in, snr_db):

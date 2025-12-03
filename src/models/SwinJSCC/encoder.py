@@ -148,7 +148,7 @@ class SwinJSCC_Encoder(nn.Module):
         x = self.norm(x)
 
         if model == 'SwinJSCC_w/o_SAandRA':
-            return self.head_list(x)
+            return self.head_list(x), None
         
         elif model == 'SwinJSCC_w/_SA':
             x, _ = self._apply_modulation(x, self.sa_sm_list, self.sa_bm_list, snr, self.H, self.W, self.sa_sigmoid)

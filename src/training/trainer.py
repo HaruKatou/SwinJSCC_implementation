@@ -157,7 +157,8 @@ class Trainer:
         print("Finish Test!")
 
     def save_checkpoint(self, epoch: int) -> None:
-        path = self.cfg.models / f"{self.cfg.workdir.name}_EP{epoch}.pth"
+        filename = f"EP{epoch}.pth"
+        path = self.cfg.models / filename
         torch.save(self.net.state_dict(), path)
         self.logger.info(f"Checkpoint saved → {path}")
 

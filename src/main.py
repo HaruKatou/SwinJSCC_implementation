@@ -66,53 +66,54 @@ def main():
 
     net = SwinJSCC(args, cfg).to(cfg.device)
 
-    pretrained_path = "./checkpoints/SwinJSCC_w_SAandRA_AWGN_HRimage_cbr_psnr_snr.model"
-    if Path(pretrained_path).exists():
-        print("Loading author's pretrained model from:", pretrained_path)
-        author_checkpoint = torch.load(pretrained_path)
+    # pretrained_path = "./checkpoints/SwinJSCC_w_SAandRA_AWGN_HRimage_cbr_psnr_snr.model"
+    # if Path(pretrained_path).exists():
+    #     print("Loading author's pretrained model from:", pretrained_path)
+    #     author_checkpoint = torch.load(pretrained_path)
 
-        # 2. Create a new state_dict for your model
-        new_state_dict = {}
+    #     # 2. Create a new state_dict for your model
+    #     new_state_dict = {}
 
-        print("Translating state_dict keys...")
-        for old_key, value in author_checkpoint.items():
-            new_key = old_key
+    #     print("Translating state_dict keys...")
+    #     for old_key, value in author_checkpoint.items():
+    #         new_key = old_key
 
-            # --- Apply Mismatch 1 & 2: Encoder SA/RA renaming ---
-            if new_key.startswith('encoder.'):
-                if 'sm_list1' in new_key:
-                    new_key = new_key.replace('sm_list1', 'sa_sm_list')
-                elif 'bm_list1' in new_key:
-                    new_key = new_key.replace('bm_list1', 'sa_bm_list')
-                elif 'sm_list' in new_key: # Must be after 'sm_list1' check
-                    new_key = new_key.replace('sm_list', 'ra_sm_list')
-                elif 'bm_list' in new_key: # Must be after 'bm_list1' check
-                    new_key = new_key.replace('bm_list', 'ra_bm_list')
+    #         # --- Apply Mismatch 1 & 2: Encoder SA/RA renaming ---
+    #         if new_key.startswith('encoder.'):
+    #             if 'sm_list1' in new_key:
+    #                 new_key = new_key.replace('sm_list1', 'sa_sm_list')
+    #             elif 'bm_list1' in new_key:
+    #                 new_key = new_key.replace('bm_list1', 'sa_bm_list')
+    #             elif 'sm_list' in new_key: # Must be after 'sm_list1' check
+    #                 new_key = new_key.replace('sm_list', 'ra_sm_list')
+    #             elif 'bm_list' in new_key: # Must be after 'bm_list1' check
+    #                 new_key = new_key.replace('bm_list', 'ra_bm_list')
 
-            # --- Apply Mismatch 3: AdaptiveModulator Sequential vs Named ---
-            if 'bm_list' in new_key:
-                if '.fc.0.' in new_key:
-                    new_key = new_key.replace('.fc.0.', '.fc1.')
-                elif '.fc.2.' in new_key:
-                    new_key = new_key.replace('.fc.2.', '.fc2.')
-                elif '.fc.4.' in new_key:
-                    new_key = new_key.replace('.fc.4.', '.fc3.')
+    #         # --- Apply Mismatch 3: AdaptiveModulator Sequential vs Named ---
+    #         if 'bm_list' in new_key:
+    #             if '.fc.0.' in new_key:
+    #                 new_key = new_key.replace('.fc.0.', '.fc1.')
+    #             elif '.fc.2.' in new_key:
+    #                 new_key = new_key.replace('.fc.2.', '.fc2.')
+    #             elif '.fc.4.' in new_key:
+    #                 new_key = new_key.replace('.fc.4.', '.fc3.')
             
-            new_state_dict[new_key] = value
+    #         new_state_dict[new_key] = value
 
-        # 3. Load the translated state_dict into your model
-        try:
-            net.load_state_dict(new_state_dict, strict=True)
-            print("Successfully loaded translated state_dict!")
-        except RuntimeError as e:
-            print("Error loading translated state_dict. There may be more mismatches:")
-            print(e)
+    #     # 3. Load the translated state_dict into your model
+    #     try:
+    #         net.load_state_dict(new_state_dict, strict=True)
+    #         print("Successfully loaded translated state_dict!")
+    #     except RuntimeError as e:
+    #         print("Error loading translated state_dict. There may be more mismatches:")
+    #         print(e)
 
     trainer = Trainer(cfg, net, train_loader, test_loader, logger)
 
     if args.training:
         start_epoch = 0
         for epoch in range(start_epoch, cfg.total_epochs):
+            print("Epoch [{}/{}]".format(epoch + 1, cfg.total_epochs))
             trainer.train_one_epoch(epoch)
             if (epoch + 1) % cfg.save_model_freq == 0:
                 trainer.save_checkpoint(epoch + 1)

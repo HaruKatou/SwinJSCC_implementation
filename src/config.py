@@ -7,6 +7,7 @@ import torch.nn as nn
 import argparse
 import time
 import torchvision
+from pathlib import Path
 
 class Config:
     def __init__(self, args):
@@ -17,24 +18,25 @@ class Config:
 
         # File paths
         timestamp = datetime.datetime.now().strftime("%m%d%H%M%S")
-        self.workdir = f"runs/{args.model}_{args.trainset}_{args.channel_type}_{timestamp}"
-        self.samples = os.path.join(self.workdir, "samples")
-        self.models = os.path.join(self.workdir, "models")
-        self.log = os.path.join(self.workdir, "log.txt")
+        self.workdir = Path(f"checkpoints/{args.model}_{args.trainset}_{args.channel_type}_{timestamp}")
+        self.samples = self.workdir / "samples"
+        self.models = self.workdir / "models"
+        self.log = self.workdir / "log.txt"
+        self.filename = datetime.datetime.now().__str__()[:-7]
 
         # Training setup
         self.learning_rate = 1e-4
         # self.total_epochs = 1_000_000
-        self.total_epochs = 20
+        self.total_epochs = 10
         self.print_step = 100
 
         # Dataset setup
         if args.trainset == 'CIFAR10':
             self.image_dims = (3, 32, 32)
-            self.batch_size = 128
+            self.batch_size = 64
             self.train_data_dir = "dataset/raw/CIFAR10/"
             self.test_data_dir = "dataset/raw/CIFAR10/"
-            self.save_model_freq = 5
+            self.save_model_freq = 1
 
             self.channel_number = int(args.C)
             self.downsample = 2
@@ -72,7 +74,7 @@ class Config:
 
         elif args.trainset == 'div2k':
             self.image_dims = (3, 256, 256)
-            self.batch_size = 16
+            self.batch_size = 2
             base_path = "dataset/raw"
             if args.testset == 'kodak':
                 self.test_data_dir = ["dataset/raw/kodak"]
@@ -80,7 +82,7 @@ class Config:
                 self.test_data_dir = ["dataset/raw/clic2021/test"]
             elif args.testset == 'ffhq':
                 self.test_data_dir = ["dataset/raw/ffhq"]
-            self.save_model_freq = 100
+            self.save_model_freq = 5
 
             self.train_data_dir = [
                 # base_path + '/clic2021/train',

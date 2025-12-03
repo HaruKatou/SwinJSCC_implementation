@@ -10,7 +10,7 @@ import torch
 import math
 import torch.utils.data as data
 
-NUM_DATASET_WORKERS = 0
+NUM_DATASET_WORKERS = 4
 SCALE_MIN = 0.75
 SCALE_MAX = 0.95
 CROP_SIZE = 256
@@ -81,6 +81,11 @@ class CIFAR10(Dataset):
     def __len__(self):
         return self.len * 10
     
+def worker_init_fn_seed(worker_id):
+        seed = 10
+        seed += worker_id
+        np.random.seed(seed)
+    
 def get_loader(args, config):
     """Return train/test DataLoaders"""
 
@@ -122,11 +127,6 @@ def get_loader(args, config):
     else:
         train_dataset = Datasets(config.train_data_dir)
         test_dataset = Datasets(config.test_data_dir)
-
-    def worker_init_fn_seed(worker_id):
-        seed = 10
-        seed += worker_id
-        np.random.seed(seed)
 
     train_loader = DataLoader(dataset=train_dataset,
                                                num_workers=NUM_DATASET_WORKERS,
